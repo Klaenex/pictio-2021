@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pictio</title>
+
+    <style>
+    canvas{
+        border: 1px solid black;
+    }
+    .is-active{
+        color: green;
+    }
+        </style>
+
+</head>
+<body>
+    <ul class="users"></ul>
+    <form>
+        <label>
+			Line weight: <input class="weight" type="range" min="1" max="50" value="4">
+		</label>
+		<label>
+			Color: <input class="color" type="color" value="#333333">
+		</label>
+
+    </form>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.2.0/p5.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io()
+        const username = prompt('Enter a pseudo:')
+
+        socket.emit('username',username)
+        let canDraw =false;
+
+
+        const usersList=document.querySelector('.users')
+        const colorInput=document.querySelector('.color')
+        const weightInput=document.querySelector('.weight')
+        socket.on('users',(data)=>{
+            usersList.innerHTML=''
+            data.forEach((user) => {
+                const li= document.createElement('li')
+                li.innerHTML=user.username
+                
+                if (user.isActive){
+                    li.classList.add('is-active')
+                }
+                usersList.appendChild(li)
+                if (user.username === username){
+                    canDraw = user.isActive
+                }
+            })
+        })
+
+
+        function setup(){
+            createCanvas(500,500);
+        }
+
+        function mouseDragged(){
+            if(!canDraw) return;
+
+            stroke(colorInput.value)
+            strokeWeight(weightInput.value)
+            line(mouseX,mouseY,pmouseX,pmouseY);
+            socket.emit('line',{
+                mouseX,
+                mouseY,
+                pmouseX,
+                pmouseY,
+                color: colorInput.value,
+                weight: weightInput.value
+            })
+        }
+        socket.on('line',(data)=>{
+            stroke(data.color)
+            strokeWeight(data.weight)
+            line(data.mouseX, data.mouseY,data.pmouseX,data.pmouseY)
+        })
+        socket.on('word',(nextWord)=>{
+            alert(`You have to draw: ${nextWord}`)
+        })
+        socket.on('clear',()=>{
+            clear()
+        })
+    </script>
+
+</body>
+</html>
